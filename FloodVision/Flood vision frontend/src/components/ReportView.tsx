@@ -77,7 +77,7 @@ export default function ReportView() {
     : 'bg-[#141313] border border-white/5';
 
   // ── Active tab ─────────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<'feed' | 'submit' | 'leaderboard' | 'drains'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'submit' | 'leaderboard'>('feed');
 
   // ── Live Data ──────────────────────────────────────────────────────────────
   const [reports, setReports] = useState<FloodReport[]>([]);
@@ -177,35 +177,6 @@ export default function ReportView() {
     }
   };
 
-  // ── Drain Submit ───────────────────────────────────────────────────────────
-  const [drainForm, setDrainForm] = useState({ reporter_name: '', drain_location: '', status: 'adopted', notes: '' });
-  const [drainSubmitting, setDrainSubmitting] = useState(false);
-
-  const handleDrainSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!drainForm.reporter_name || !drainForm.drain_location) {
-      showToast('Name and drain location are required.');
-      return;
-    }
-    setDrainSubmitting(true);
-    try {
-      const res = await fetch(`${BACKEND}/api/drains/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(drainForm),
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      showToast(`Drain report submitted! You earned ${data.points_awarded} points.`);
-      setDrainForm({ reporter_name: '', drain_location: '', status: 'adopted', notes: '' });
-      fetchAll();
-    } catch {
-      showToast('Drain report failed — is the backend running?');
-    } finally {
-      setDrainSubmitting(false);
-    }
-  };
-
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative space-y-6 no-scrollbar text-white bg-[#05070a]">
       {/* Ambient */}
@@ -261,7 +232,6 @@ export default function ReportView() {
               { id: 'feed' as const,        label: 'Live Feed',   icon: <RefreshCw className="h-4 w-4" />,  color: 'text-pink-400 border-pink-400'    },
               { id: 'submit' as const,      label: 'Submit Report',icon: <Upload className="h-4 w-4" />,    color: 'text-cyan-400 border-cyan-400'    },
               { id: 'leaderboard' as const, label: 'Leaderboard', icon: <Trophy className="h-4 w-4" />,    color: 'text-yellow-400 border-yellow-400'},
-              { id: 'drains' as const,      label: 'Drains',      icon: <Droplets className="h-4 w-4" />,  color: 'text-emerald-400 border-emerald-400'},
             ].map(tab => (
               <button
                 key={tab.id}
@@ -296,7 +266,7 @@ export default function ReportView() {
                     <p className="font-bold text-red-300">Backend Offline</p>
                     <p className="text-sm text-slate-400 mt-1 font-mono">Start the Django server at localhost:8000 to see real reports.</p>
                     <code className="block mt-3 bg-black/40 px-4 py-2 rounded-lg text-xs text-slate-300 font-mono">
-                      python manage.py runserver
+                      python manage.py runserver 0.0.0.0:8000
                     </code>
                   </div>
                 )}
@@ -566,92 +536,6 @@ export default function ReportView() {
                     })}
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* ── DRAINS ── */}
-            {activeTab === 'drains' && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-bold text-emerald-300 mb-1">Drain Adoption Program</h3>
-                  <p className="text-sm text-slate-400 font-mono">Adopt a drain near you, report blockages, earn points.</p>
-                </div>
-
-                <form onSubmit={handleDrainSubmit} className="space-y-4 p-5 bg-white/3 border border-white/8 rounded-xl">
-                  <h4 className="font-bold text-sm text-emerald-300 uppercase tracking-wider flex items-center gap-2">
-                    <Heart className="h-4 w-4" /> Report / Adopt a Drain
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-mono text-slate-400 uppercase mb-2">Your Name *</label>
-                      <input
-                        type="text"
-                        value={drainForm.reporter_name}
-                        onChange={e => setDrainForm(f => ({ ...f, reporter_name: e.target.value }))}
-                        placeholder="e.g. Arjun Nair"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-mono text-slate-400 uppercase mb-2">Drain Location *</label>
-                      <input
-                        type="text"
-                        value={drainForm.drain_location}
-                        onChange={e => setDrainForm(f => ({ ...f, drain_location: e.target.value }))}
-                        placeholder="e.g. Panaji Bridge Drain"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-mono text-slate-400 uppercase mb-2">Status</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {['adopted', 'clear', 'blocked', 'debris'].map(s => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setDrainForm(f => ({ ...f, status: s }))}
-                          className={`py-2 px-3 rounded-xl border text-xs font-mono uppercase transition-all cursor-pointer ${
-                            drainForm.status === s
-                              ? s === 'blocked' ? 'bg-red-500/20 border-red-500/50 text-red-300' :
-                                s === 'debris'  ? 'bg-orange-500/20 border-orange-500/50 text-orange-300' :
-                                s === 'clear'   ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300' :
-                                'bg-cyan-500/20 border-cyan-500/50 text-cyan-300'
-                              : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
-                          }`}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-mono text-slate-400 uppercase mb-2">Notes</label>
-                    <textarea
-                      value={drainForm.notes}
-                      onChange={e => setDrainForm(f => ({ ...f, notes: e.target.value }))}
-                      placeholder="Describe the drain condition..."
-                      rows={2}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-colors resize-none"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={drainSubmitting}
-                    className="w-full py-3 bg-gradient-to-r from-emerald-600/40 to-teal-600/30 hover:from-emerald-600/60 hover:to-teal-600/50 border border-emerald-500/40 text-emerald-200 rounded-xl font-bold text-sm transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {drainSubmitting
-                      ? <><RefreshCw className="h-4 w-4 animate-spin" /> Submitting…</>
-                      : <><Heart className="h-4 w-4" /> Submit Drain Report (+10–15 pts)</>
-                    }
-                  </button>
-                </form>
               </div>
             )}
 

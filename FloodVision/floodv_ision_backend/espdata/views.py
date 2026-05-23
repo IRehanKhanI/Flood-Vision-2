@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # HC-SR04 measures the distance from the sensor down to the water surface.
 # A SMALL distance = water level is HIGH (close to sensor) = flood risk.
 # Adjust this value to match your physical sensor mounting height.
-FLOOD_THRESHOLD_CM = 30.0  # if distance < 30 cm → flood alert
+FLOOD_THRESHOLD_CM = 3.5 # if distance < 30 cm → flood alert
 
 # ─── In-memory rolling buffer (last 60 readings ≈ 1 minute) ──────────────────
 # This allows the frontend to get a quick response without a DB query on every poll.

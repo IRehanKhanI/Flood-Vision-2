@@ -29,7 +29,7 @@ const char* serverUrl = "http://10.111.152.66:8000/espdata/reading/";
 #define ECHO_PIN 18
 
 // ─── Flood detection threshold (must match Django FLOOD_THRESHOLD_CM) ─────────
-#define FLOOD_THRESHOLD_CM 30.0
+#define FLOOD_THRESHOLD_CM 3.5
 
 // ─── Reading interval ────────────────────────────────────────────────────────
 #define READING_INTERVAL_MS 1000
