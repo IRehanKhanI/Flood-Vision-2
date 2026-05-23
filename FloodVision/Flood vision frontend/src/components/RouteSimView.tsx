@@ -425,12 +425,8 @@ export default function RouteSimView(): React.ReactElement {
 
     if (isRouteFlooded && !prevFloodState.current) {
       prevFloodState.current = true;
-      setRouteMode("flooding");
-      const timer = setTimeout(() => {
-        drawFloodedReroute();
-        setRouteMode("rerouted");
-      }, 1600);
-      return () => clearTimeout(timer);
+      setRouteMode("rerouted");
+      drawFloodedReroute();
     }
 
     if (!isRouteFlooded && prevFloodState.current) {
