@@ -28,9 +28,6 @@ import {
   BellRing,
 } from 'lucide-react';
 
-// ─── Backend URL ─────────────────────────────────────────────────────────────
-const ESP32_BACKEND = 'http://localhost:8000/espdata';
-const POLL_INTERVAL_MS = 1000;
 
 // ─── Flood threshold (keep in sync with Django FLOOD_THRESHOLD_CM) ───────────
 const FLOOD_THRESHOLD_CM = 30;
@@ -60,99 +57,6 @@ export default function SensorsView() {
 
   const activeNode = sensorNodes[0];
 
-  // Track whether we already sent the browser notification for this flood event
-  const floodNotifiedRef = useRef(false);
-  // Track poll timer
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // ─── Request browser notification permission once ─────────────────────────
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  // ─── Flood notification helpers ────────────────────────────────────────────
-  const triggerFloodNotification = useCallback((distanceCm: number) => {
-    if (floodNotifiedRef.current) return;
-    floodNotifiedRef.current = true;
-
-    const msg = `⚠ FLOOD ALERT! Sensor reads ${distanceCm.toFixed(1)} cm — water level is critically high!`;
-
-    // In-app toast
-    showToast(msg);
-
-    // Browser push notification
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('🚨 FloodVision — FLOOD ALERT', {
-        body: msg,
-        icon: '/favicon.ico',
-      });
-    }
-
-    // System bell sound via AudioContext
-    try {
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 1.5);
-    } catch (_) { /* audio blocked */ }
-
-  }, [showToast]);
-
-  // ─── Main polling loop ─────────────────────────────────────────────────────
-  useEffect(() => {
-    let cancelled = false;
-
-    const poll = async () => {
-      const start = performance.now();
-      try {
-        const res = await fetch(`${ESP32_BACKEND}/latest/`);
-        const latencyMs = Math.round(performance.now() - start);
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const data = await res.json();
-        if (cancelled) return;
-
-        if (data.status === 'no_data') {
-          setESP32Status('connecting');
-          return;
-        }
-
-        updateFromESP32({ ...data, latencyMs });
-
-        // Flood notification logic
-        if (data.flood_alert) {
-          triggerFloodNotification(data.latest?.distance_cm ?? 0);
-        } else {
-          // Reset notification latch when alert clears
-          floodNotifiedRef.current = false;
-        }
-
-      } catch (err) {
-        if (!cancelled) {
-          setESP32Status('offline');
-        }
-      }
-    };
-
-    // Initial poll
-    poll();
-    pollTimerRef.current = setInterval(poll, POLL_INTERVAL_MS);
-
-    return () => {
-      cancelled = true;
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    };
-  }, [updateFromESP32, setESP32Status, triggerFloodNotification]);
 
   // ─── Status badge ──────────────────────────────────────────────────────────
   const StatusBadge = () => {

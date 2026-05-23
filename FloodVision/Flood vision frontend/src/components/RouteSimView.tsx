@@ -49,6 +49,7 @@ interface GridSector {
 
 const BAND_THRESHOLDS = { LOW: 2.5, MEDIUM: 10.0 } as const;
 const FLOOD_THRESHOLD = 10.0;
+const ESP32_FLOOD_THRESHOLD_CM = 30.0;
 const SECTOR_RADIUS = 380;
 
 const ORIGIN      = { lat: 15.5937, lng: 73.8087, label: 'Mapusa' };
@@ -119,8 +120,8 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
   });
 }
 
-export default function RainRadarView(): React.ReactElement {
-  const { activeLayout } = useAppStore();
+export default function RouteSimView(): React.ReactElement {
+  const { activeLayout, liveDistance } = useAppStore();
   const isGlass = activeLayout === ThemeVariant.GLASSMORPHISM;
 
   const mapDivRef          = useRef<HTMLDivElement>(null);
@@ -155,15 +156,16 @@ export default function RainRadarView(): React.ReactElement {
     });
   }, [sectors, simRain, simActive]);
 
-  const isRouteFlooded = useMemo(() =>
-    displaySectors.some(
+  const isRouteFlooded = useMemo(() => {
+    const isEsp32Flooded = liveDistance !== null && liveDistance < ESP32_FLOOD_THRESHOLD_CM;
+    const isSimFlooded = displaySectors.some(
       (s) =>
         s.band === 'HIGH' &&
         Math.abs(s.lat - FLOOD_ZONE_CENTER.lat) < FLOOD_ZONE_RADIUS_DEG &&
         Math.abs(s.lng - FLOOD_ZONE_CENTER.lng) < FLOOD_ZONE_RADIUS_DEG,
-    ),
-    [displaySectors],
-  );
+    );
+    return isEsp32Flooded || isSimFlooded;
+  }, [displaySectors, liveDistance]);
 
   const highSectors = useMemo(() => displaySectors.filter((s) => s.band === 'HIGH'), [displaySectors]);
   const bandCount   = (band: RainfallBand) => displaySectors.filter((s) => s.band === band).length;
@@ -666,7 +668,10 @@ export default function RainRadarView(): React.ReactElement {
               }}>
                 <AlertTriangle size={10} color="#ff3a2e" style={{ flexShrink:0, animation:'routeflash 1.5s ease-in-out infinite' }} />
                 <span style={{ fontFamily:'monospace', fontSize:8, color:'#cc4040', lineHeight:1.6 }}>
-                  Direct path blocked · flood zone exceeds {FLOOD_THRESHOLD} mm/hr
+                  {liveDistance !== null && liveDistance < ESP32_FLOOD_THRESHOLD_CM 
+                    ? `Direct path blocked · ESP32 Sensor detects water level at ${liveDistance.toFixed(1)} cm`
+                    : `Direct path blocked · flood zone exceeds ${FLOOD_THRESHOLD} mm/hr`
+                  }
                 </span>
               </div>
             )}

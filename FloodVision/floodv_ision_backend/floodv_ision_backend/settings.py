@@ -39,8 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'flood',  # FloodVision AI analysis app
-    'espdata',  # ESP32 real-time sensor telemetry
+    'flood',     # FloodVision AI analysis app
+    'espdata',   # ESP32 real-time sensor telemetry
+    'reports',   # Citizen flood reporter & leaderboard
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 MIDDLEWARE = [
@@ -120,6 +121,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# ─── Media files (uploaded photos from citizen reporters) ────────────────────
+import os
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

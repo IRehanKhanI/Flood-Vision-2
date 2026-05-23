@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from './store';
 import { ThemeVariant } from './types';
 
@@ -16,6 +16,9 @@ import RainRadarView from './components/RainRadarView';
 import RouteSimView from './components/RouteSimView';
 import SensorsView from './components/SensorsView';
 import ArchitectDocsView from './components/ArchitectDocsView';
+import SettingsView from './components/SettingsView';
+import SimulationView from './components/SimulationView';
+import ReportView from './components/ReportView';
 
 export default function App() {
   const { 
@@ -43,6 +46,12 @@ export default function App() {
         return <SensorsView />;
       case 'architect':
         return <ArchitectDocsView />;
+      case 'settings':
+        return <SettingsView />;
+      case 'simulation':
+        return <SimulationView />;
+      case 'report':
+        return <ReportView />;
       default:
         return <DashboardView />;
     }
@@ -51,6 +60,91 @@ export default function App() {
   const appThemeClass = activeTheme === 'dark' 
     ? 'dark bg-[#141313] text-on-surface' 
     : 'light bg-[#e5e2e1] text-current';
+
+  // ─── Global ESP32 Polling & Flood Notifications ───────────────────────────
+  const floodNotifiedRef = useRef(false);
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  const triggerFloodNotification = useCallback((distanceCm: number) => {
+    if (floodNotifiedRef.current) return;
+    floodNotifiedRef.current = true;
+
+    const msg = `⚠ FLOOD ALERT! Sensor reads ${distanceCm.toFixed(1)} cm — water level is critically high!`;
+    showToast(msg);
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('🚨 FloodVision — FLOOD ALERT', {
+        body: msg,
+        icon: '/favicon.ico',
+      });
+    }
+
+    try {
+      const ctx = new window.AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 1.5);
+    } catch (_) { /* audio blocked */ }
+
+  }, [showToast]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ESP32_BACKEND = 'http://localhost:8000/espdata';
+    const POLL_INTERVAL_MS = 1000;
+
+    const poll = async () => {
+      const start = performance.now();
+      try {
+        const res = await fetch(`${ESP32_BACKEND}/latest/`);
+        const latencyMs = Math.round(performance.now() - start);
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        if (cancelled) return;
+
+        if (data.status === 'no_data') {
+          useAppStore.getState().setESP32Status('connecting');
+          return;
+        }
+
+        useAppStore.getState().updateFromESP32({ ...data, latencyMs });
+
+        if (data.flood_alert) {
+          triggerFloodNotification(data.latest?.distance_cm ?? 0);
+        } else {
+          floodNotifiedRef.current = false;
+        }
+
+      } catch (err) {
+        if (!cancelled) {
+          useAppStore.getState().setESP32Status('offline');
+        }
+      }
+    };
+
+    poll();
+    pollTimerRef.current = setInterval(poll, POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
+  }, [triggerFloodNotification]);
 
   return (
     <div className={`min-h-screen w-screen flex overflow-hidden font-sans transition-colors duration-300 relative ${appThemeClass}`}>

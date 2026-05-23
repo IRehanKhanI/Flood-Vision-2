@@ -10,7 +10,7 @@ export interface ChartPoint {
 export type ESP32Status = 'connecting' | 'live' | 'offline';
 
 interface AppState {
-  currentView: 'landing' | 'dashboard' | 'route-sim' | 'sensors' | 'architect' | 'ai-analysis' | 'rain-radar';
+  currentView: 'landing' | 'dashboard' | 'route-sim' | 'sensors' | 'architect' | 'ai-analysis' | 'rain-radar' | 'simulation' | 'report' | 'settings';
   activeTheme: 'dark' | 'light';
   activeLayout: ThemeVariant;
 
@@ -48,6 +48,8 @@ interface AppState {
   isScanningAI: boolean;
   mobileSidebarOpen: boolean;
   activeToast: string | null;
+  isSyncing: boolean;
+  toggleSync: () => void;
 
   // ─── Actions ──────────────────────────────────────────────────────────────
   setView: (view: AppState['currentView']) => void;
@@ -148,6 +150,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   isScanningAI: false,
   mobileSidebarOpen: false,
   activeToast: null,
+  isSyncing: true,
 
   // ─── ESP32 update action ─────────────────────────────────────────────────
   updateFromESP32: (payload) => {
@@ -236,6 +239,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setLayout: (layout) => set({ activeLayout: layout }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
   setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
+  toggleSync: () => set((state) => ({ isSyncing: !state.isSyncing })),
 
   showToast: (message) => {
     set({ activeToast: message });

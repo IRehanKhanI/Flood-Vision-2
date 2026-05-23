@@ -1,10 +1,9 @@
 import { useAppStore } from '../store';
 import { ThemeVariant } from '../types';
-import { Bell, Settings, ShieldAlert, Heart, RefreshCw, Menu } from 'lucide-react';
+import { Bell, Settings, ShieldAlert, RefreshCw, Menu } from 'lucide-react';
 
 export default function Header() {
   const { 
-    currentView, 
     setView, 
     activeLayout,
     isSyncing,
@@ -31,19 +30,11 @@ export default function Header() {
     showToast("Master Emergency Broadcast sent successfully! Local disaster mitigation teams have been mobilized automatically via ESP32 telemetry nodes.");
   };
 
-  const menuLinks = [
-    { view: 'landing' as const, label: 'Portal' },
-    { view: 'dashboard' as const, label: 'Observer' },
-    { view: 'ai-analysis' as const, label: 'AI Analysis' },
-    { view: 'rain-radar' as const, label: 'Rain Radar' },
-    { view: 'route-sim' as const, label: 'Smart routing' },
-    { view: 'sensors' as const, label: 'Telemetry Sync' },
-  ];
-
   return (
-    <header className={`h-18 flex items-center justify-between px-6 md:px-10 shrink-0 z-50 sticky top-0 w-full ${headerStyle} transition-all duration-300`}>
-      {/* Platform Title */}
-      <div className="flex items-center gap-4 md:gap-6">
+    <header className={`h-18 flex items-center justify-between px-4 md:px-6 shrink-0 z-50 sticky top-0 w-full ${headerStyle} transition-all duration-300`}>
+      
+      {/* Left: Mobile menu trigger + Logo */}
+      <div className="flex items-center gap-3">
         {/* Mobile menu trigger */}
         <button
           onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
@@ -54,35 +45,15 @@ export default function Header() {
         </button>
 
         <button 
-          onClick={() => setView('landing')}
-          className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-[#47e266] cursor-pointer"
+          onClick={() => setView('dashboard')}
+          className="font-bold text-lg sm:text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-[#47e266] cursor-pointer"
         >
           Flood Vision Live
         </button>
-
-        {/* Dynamic Desktop Links */}
-        <nav className="hidden lg:flex items-center gap-6">
-          {menuLinks.map(link => {
-            const isSel = currentView === link.view;
-            return (
-              <button
-                key={link.view}
-                onClick={() => setView(link.view)}
-                className={`text-xs uppercase font-mono tracking-widest px-3 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
-                  isSel 
-                    ? 'text-primary bg-primary/10 font-bold border border-primary/20' 
-                    : 'text-outline hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {link.label}
-              </button>
-            );
-          })}
-        </nav>
       </div>
 
-      {/* Center Alarm Stream Banner (mock sync element) */}
-      <div className="hidden sm:flex items-center gap-4 bg-surface-container-highest/60 border border-white/5 rounded-full px-4 py-1.5">
+      {/* Center: SIM LINK status pill */}
+      <div className="hidden sm:flex items-center gap-3 bg-surface-container-highest/60 border border-white/5 rounded-full px-4 py-1.5">
         <button 
           onClick={toggleSync}
           className={`cursor-pointer transition-transform duration-500 hover:rotate-180 flex items-center gap-2 ${
@@ -98,21 +69,22 @@ export default function Header() {
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-4">
-        {/* Hot Trigger Protocol */}
+      <div className="flex items-center gap-2 md:gap-3">
+        {/* Emergency Protocol Button */}
         <button
           onClick={triggerUrgentAlert}
-          className="bg-danger text-white hover:bg-danger/90 hover:scale-102 active:scale-98 transition-all px-4 py-2 rounded-full font-sans text-xs font-semibold shadow-[0_0_15px_rgba(255,69,58,0.4)] cursor-pointer flex items-center gap-2"
+          className="bg-danger text-white hover:bg-danger/90 active:scale-98 transition-all px-3 md:px-4 py-2 rounded-full font-sans text-xs font-semibold shadow-[0_0_15px_rgba(255,69,58,0.4)] cursor-pointer flex items-center gap-2"
         >
           <ShieldAlert className="h-4 w-4 animate-bounce" />
           <span className="hidden md:inline">EMERGENCY PROTOCOL</span>
-          <span className="md:hidden">WARN</span>
+          <span className="md:hidden">SOS</span>
         </button>
 
-        {/* Live Notification Indicator */}
+        {/* Live Notification Bell */}
         <button 
           onClick={() => setView('sensors')}
           className="text-outline hover:text-white transition-colors relative cursor-pointer p-1.5 hover:bg-white/5 rounded-full"
+          title="Alerts"
         >
           <Bell className="h-5 w-5" />
           {activeAlertsCount > 0 && (
@@ -120,11 +92,11 @@ export default function Header() {
           )}
         </button>
 
-        {/* Layout selector shortcut */}
+        {/* Settings Icon — opens SettingsView */}
         <button 
-          onClick={() => setView('architect')} 
+          onClick={() => setView('settings')} 
           className="text-outline hover:text-white transition-colors cursor-pointer p-1.5 hover:bg-white/5 rounded-full"
-          title="Review multi-module configurations"
+          title="Settings"
         >
           <Settings className="h-5 w-5" />
         </button>

@@ -5,8 +5,11 @@ import {
   MapPin, Droplets, Wind, Gauge, CloudLightning, 
   Activity, AlertTriangle, Cpu, Radio, ShieldAlert, 
   Navigation, BarChart3, Zap, Scan, Maximize2,
-  ChevronRight, Thermometer, RefreshCw
+  ChevronRight, Thermometer, RefreshCw, Loader2
 } from 'lucide-react';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+} from 'recharts';
 
 export default function DashboardView() {
   const { 
@@ -15,13 +18,19 @@ export default function DashboardView() {
     systemStats,
     alerts,
     activeLayout,
-    setView
+    setView,
+    liveDistance,
+    chartHistory,
+    esp32Status
   } = useAppStore();
 
   const isGlass = activeLayout === ThemeVariant.GLASSMORPHISM;
   const panelBase = isGlass 
     ? 'bg-[#0d1117]/60 backdrop-blur-xl border border-white/10' 
     : 'bg-[#141313] border border-white/5';
+
+  const isFlood = liveDistance !== null && liveDistance < 30;
+  const chartColor = isFlood ? '#ef4444' : '#22d3ee';
 
   // Weather State
   const [weather, setWeather] = useState<any>(null);
@@ -202,57 +211,70 @@ export default function DashboardView() {
             </div>
           </div>
 
-          {/* COLUMN 2: CENTER AI THREAT MAP (Span 6) */}
+          {/* COLUMN 2: CENTER LIVE TELEMETRY (Span 6) */}
           <div className="lg:col-span-6 flex flex-col">
-            <div className={`${panelBase} rounded-2xl p-1 flex-1 relative overflow-hidden group shadow-2xl`}>
-              
-              {/* Top Bar inside image */}
-              <div className="absolute top-4 left-4 right-4 z-20 flex justify-between items-center">
-                <div className="bg-black/60 backdrop-blur border border-white/10 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                  <Scan className="h-4 w-4 text-cyan-400 animate-pulse" />
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold">Live AI Threat Map</span>
+            <div className={`${panelBase} rounded-2xl p-6 flex-1 relative overflow-hidden group shadow-2xl flex flex-col gap-4`}>
+              <div className="flex justify-between items-center border-b border-white/5 pb-3">
+                <div className="flex items-center gap-3">
+                  <Activity className="h-5 w-5 text-cyan-400" />
+                  <div>
+                    <h3 className="font-bold text-sm text-white font-sans uppercase tracking-widest">ESP32 Live Telemetry</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-mono text-slate-400">NODE: HC-SR04</span>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase font-bold ${esp32Status === 'live' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {esp32Status}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <button className="bg-black/60 backdrop-blur border border-white/10 p-1.5 rounded-lg hover:bg-white/10 transition-colors" onClick={() => setView('ai-analysis')}>
-                  <Maximize2 className="h-4 w-4 text-slate-300" />
-                </button>
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase">Live Distance</span>
+                    <span className={`text-2xl font-black font-mono leading-none ${isFlood ? 'text-red-400' : 'text-cyan-400'}`}>
+                      {liveDistance !== null ? `${liveDistance.toFixed(1)} cm` : '—'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {/* Main Visual */}
-              <div className="relative w-full h-[400px] lg:h-full min-h-[400px] rounded-xl overflow-hidden bg-[#0a0a0a]">
-                <img 
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuA58l0uoL2ldchvHIgQlHo9w11Y67igR-xfT3OOyCC8eaTcZV6qRN57b47gQKnlIZnnpxyKgF06YYqBGOibfRwtSoC_JxP5PJHnG7UNbkhpZFmmGn1UfhdnBPJXdaY650w_hZmwby6vnSLjVE7hSJJO9_x8SJGfFwFhyvXgzq8k4NjCF39t-ec0U3gWq6_3oE8ZeLO7JVL9HIi-SqP1aLU5YcWQhfS9c6duEuy1wVvMGKmcjyIHUDaiN1Cycr6hwkQ5fnT2qqs_m-8" 
-                  alt="City AI Scan" 
-                  className="w-full h-full object-cover opacity-60 mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-1000 scale-105 group-hover:scale-100"
-                  referrerPolicy="no-referrer"
-                />
-                
-                {/* Cyberpunk Scanline overlay */}
-                <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.2)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
-                
-                {/* Animated Laser Scanner */}
-                <div className="absolute top-0 left-0 w-full h-[2px] bg-cyan-400 shadow-[0_0_20px_rgba(34,211,238,1)] animate-[scan_3s_linear_infinite] z-10"></div>
-                
-                {/* Fake Bounding Boxes */}
-                <div className="absolute top-[25%] left-[10%] w-[30%] h-[35%] border-[1.5px] border-cyan-500/50 bg-cyan-500/10 rounded flex flex-col justify-between p-1 shadow-[inset_0_0_15px_rgba(34,211,238,0.2)]">
-                  <span className="text-[8px] font-mono text-cyan-300 bg-black/60 px-1 py-0.5 w-max">DRAIN_CLEAR [98%]</span>
-                  <div className="w-2 h-2 border-r border-b border-cyan-500 absolute bottom-0 right-0"></div>
-                  <div className="w-2 h-2 border-l border-t border-cyan-500 absolute top-0 left-0"></div>
-                </div>
-
-                <div className="absolute bottom-[20%] right-[15%] w-[40%] h-[40%] border-2 border-red-500 bg-red-500/10 rounded flex flex-col justify-between p-1 shadow-[inset_0_0_20px_rgba(239,68,68,0.3)] animate-[pulse_2s_infinite]">
-                  <span className="text-[8px] font-mono text-red-100 bg-red-600 px-1 py-0.5 w-max font-bold">CRITICAL_BLOCKAGE</span>
-                  <div className="text-[8px] font-mono text-red-400 self-end bg-black/80 px-1">+12cm/hr Rise</div>
-                  <div className="w-3 h-3 border-r-2 border-b-2 border-red-500 absolute bottom-0 right-0"></div>
-                  <div className="w-3 h-3 border-l-2 border-t-2 border-red-500 absolute top-0 left-0"></div>
-                </div>
-
-                {/* Crosshairs */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 pointer-events-none">
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-3 bg-white/30"></div>
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0.5 h-3 bg-white/30"></div>
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 w-3 bg-white/30"></div>
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 h-0.5 w-3 bg-white/30"></div>
-                </div>
+              {/* Chart */}
+              <div className="flex-1 min-h-[300px]">
+                {chartHistory.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center gap-3 text-white/50">
+                    <Loader2 className="h-8 w-8 animate-spin text-cyan-400/60" />
+                    <p className="text-xs font-mono uppercase tracking-widest">Awaiting ESP32 sync...</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorDistDash" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={chartColor} stopOpacity={0.4} />
+                          <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="time" stroke="#8b91a0" fontSize={9} fontFamily="monospace" interval="preserveStartEnd" />
+                      <YAxis stroke="#8b91a0" fontSize={10} fontFamily="monospace" unit=" cm" />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#141313', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace' }}
+                        labelStyle={{ fontWeight: 'bold' }}
+                        formatter={(val: number) => [`${val.toFixed(1)} cm`, 'Distance']}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="distance_cm"
+                        stroke={chartColor}
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorDistDash)"
+                        name="Distance (cm)"
+                        dot={false}
+                        isAnimationActive={false}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
           </div>
